@@ -1,0 +1,73 @@
+{"name": "JetBlue",
+    "rep" : {
+        "id" : "m123",
+        "first_name": "Mary",
+        "last_name" : "Friendly",
+        "phone": ""
+    },
+    "groups": [
+        {
+            "code": 123,
+            "name": "Non Unionized",
+            "rep" : {
+                "id" : "m123",
+                "first_name": "Mary",
+                "last_name" : "Friendly",
+                "phone": ""
+            },
+            "benefits": [
+                {
+                    "id": "jbair",
+                    "topic": "Retirement",
+                    "type" : "Retirement Plan",
+                    "code": "401k",
+                    "name" : "JetBlue Retirement Plan",
+                    "funds": [
+                        {"name": "Smart Retirement 2020","target_year": 2020, "synonym": "JetBlue Smart Retirement 2020", "symbol": "FFFXY"},
+                        {"name": "Smart Retirement 2030","target_year": 2030, "synonym": "JetBlue Smart Retirement 2030", "symbol": "FFFXY"},
+                        {"name": "Smart Retirement 2040","target_year": 2040, "synonym": "JetBlue Smart Retirement 2040", "symbol": "FFFXY"},
+                        {"name": "Smart Retirement 2050","target_year": 2050, "synonym": "JetBlue Smart Retirement 2050", "symbol": "FFFXY"},
+                        {"name": "Smart Retirement 2060","target_year": 2060, "synonym": "JetBlue Smart Retirement 2060", "symbol": "FFFXY"}
+                    ],
+                    "provider_url": "www.fidelity.com",
+                    "provider_phone": "1-800-400-3000"
+                },
+                {
+                    "id": "jbhdhp",
+                    "topic": "Healthcare",
+                    "type": "Health Insurance",
+                    "code" : "HDHP",
+                    "name" : "Anthem Blue Cross HDHP"
+                }
+            ]
+        },
+        {
+            "code": 124,
+            "name": "Unionized",
+            "benefits": [
+                {
+                    "id": "jbair_U",
+                    "topic": "Retirement",
+                    "type" : "Retirement Plan",
+                    "code": "Pension",
+                    "name" : "JetBlue Pension"
+                },
+                {
+                    "id": "jbair_U",
+                    "topic": "Retirement",
+                    "type" : "Retirement Plan",
+                    "code": "401k",
+                    "name" : "JetBlue Pension"
+                },
+                {
+                    "id": "jbhdhp",
+                    "topic": "Halthcare",
+                    "type": "Health Insurance",
+                    "code" : "HDHP",
+                    "name" : "Anthem Blue Cross HDHP"
+                }
+            ]
+        }
+    ]
+
+}
