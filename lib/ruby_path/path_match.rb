@@ -4,8 +4,8 @@ module PathMatch
   PathCache.clear
 
   GLOBAL_SELECTOR=/\$/
-  CHILD_SELECTOR=/(\.(?<child>\w+)|\[(?<child>\w+)\])/
-  EXPRESSION_SELECTOR=/\[\?\((?<child>[\w\'\:\=\>\<\|\.\$\&\'\"\@\]\[\s\(\)\^[\]\)]]+)\)\]/
+  CHILD_SELECTOR=/(\.(?<child>\w+)|\[\'(?<child>\w+)\'\])/
+  EXPRESSION_SELECTOR=/\[\?\((?<child>[\w\'\:\?\=\>\<\|\.\$\&\'\"\@\]\[\s\(\)\^[\]\)]]+)\)\]/
   GLOBAL_CHILD_SELECTOR=/\.\.\w+/
   ALL_THINGS_SELECTOR=/[(\.\*)(\[\*\])]/
 
@@ -69,8 +69,8 @@ class Hash
 
   PATH_MATCHERS={
     GLOBAL_SELECTOR => lambda{|key, obj, context| obj},
-    GLOBAL_CHILD_SELECTOR => lambda{|obj,key| raise 'global search is not supported now'},
-    CHILD_SELECTOR=> lambda{|key, obj, context|obj[key]||obj[key.to_sym]},
+    GLOBAL_CHILD_SELECTOR => lambda{|obj,key, context| raise 'global search is not supported now'},
+    CHILD_SELECTOR=> lambda{|key, obj, context| obj[key]||obj[key.to_sym]},
     EXPRESSION_SELECTOR => lambda{|key, obj, context| obj.match?(key, context) ? obj:nil},
     ALL_THINGS_SELECTOR => lambda{|key, obj, context| obj.values}
   }
@@ -80,12 +80,15 @@ class Hash
   end
 
   def stringify_keys
+    dup.stringify_keys!
+  end
+
+  def stringify_keys!
     keys.each do |key|
       self[key.to_s] = delete(key)
     end
     self
   end
-
 
 end
 
@@ -96,7 +99,7 @@ class Array
   PATH_MATCHERS={
     GLOBAL_SELECTOR => lambda{|key, obj, context| obj},
     GLOBAL_CHILD_SELECTOR => lambda{|key, obj, context| raise 'global search is not supported now'},
-    CHILD_SELECTOR => lambda{|child, obj, context| obj.flat_map{|el| el[child]}.compact},
+    CHILD_SELECTOR => lambda{|child, obj, context| obj.flat_map{|el| el[child]||el[child.to_sym] }.compact},
     EXPRESSION_SELECTOR => lambda{|expr, obj, context| obj.select{|el| el.match?(expr, context)}},
     ALL_THINGS_SELECTOR => lambda{|key, obj, context| obj}
   }

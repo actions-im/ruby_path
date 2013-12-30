@@ -17,7 +17,9 @@ Gem::Specification.new do |s|
   s.rubyforge_project = 'ruby_path'
 
   s.add_development_dependency 'rspec'
+  s.add_development_dependency 'rspec-expectations'
   s.add_development_dependency 'bundler'
+  s.add_development_dependency 'guard-rspec'
 
   s.files         = `git ls-files`.split("\n")
   s.test_files    = `git ls-files -- {test,spec,features}/*`.split("\n")
