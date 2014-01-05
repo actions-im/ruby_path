@@ -19,3 +19,45 @@ module ExprMatch
   end
 
 end
+
+class Hash
+
+  include ExprMatch
+
+end
+
+class String
+
+  include ExprMatch
+
+end
+
+class Integer
+
+  include ExprMatch
+
+end
+
+class Fixnum
+
+  include ExprMatch
+
+end
+
+class Float
+
+  include ExprMatch
+
+end
+
+class TrueClass
+
+  include ExprMatch
+
+end
+
+class FalseClass
+
+  include ExprMatch
+
+end

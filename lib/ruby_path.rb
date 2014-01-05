@@ -1,5 +1,4 @@
 require "strscan"
-require './lib/ruby_path/path_cache'
-require './lib/ruby_path/expr_match'
-require './lib/ruby_path/path_match'
-require './lib/ruby_path/version'
+Dir[File.dirname(__FILE__) + '/ruby_path/*.rb'].each do |file|
+  require file
+end

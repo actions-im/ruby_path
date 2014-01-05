@@ -5,9 +5,12 @@ module PathMatch
 
   GLOBAL_SELECTOR=/\$/
   CHILD_SELECTOR=/(\.(?<child>\w+)|\[\'(?<child>\w+)\'\])/
-  EXPRESSION_SELECTOR=/\[\?\((?<child>[\w\'\:\?\=\>\<\|\.\$\&\'\"\@\]\[\s\(\)\^[\]\)]]+)\)\]/
+  EXPRESSION_SELECTOR=/\[\?\((?<child>.+?)\)\]/
   GLOBAL_CHILD_SELECTOR=/\.\.\w+/
   ALL_THINGS_SELECTOR=/[(\.\*)(\[\*\])]/
+
+  FIND_METHOD_SELECTOR=/^find_(?<key>\w+)_by_(?<sub_key>\w+)/
+  HAS_METHOD_SELECTOR=/has_(?<key>\w+)|(?<key>\w+)\?/
 
   protected
 
@@ -30,16 +33,9 @@ module PathMatch
         expression_identifier=match_data.names.pop
         sub_expression=expression_identifier.present? ? match_data[expression_identifier] : nil
         extractor=(current_object.class::PATH_MATCHERS[key])
-        #extractor_arity=extractor.arity
-        #context_dependent=(extractor_arity==3)
-        #raise "Incorrect path. Sub expression #{sub_expression} does not match #{key}" if sub_expression.present? && extractor.arity==1
         extractor=extractor.curry[sub_expression||'']
-        #if sub_expression.present? && extractor.arity>1
-        #  extractor=extractor.curry[sub_expression]
-        #  extractor_arity=extractor_arity-1
-        #end
         current_object=extractor.call(current_object, context)
-        path_extractor<<extractor#{extractor: extractor, arity:extractor_arity}
+        path_extractor<<extractor
       else
         raise "Unable to parse your path: #{path}.
                Here is the part, which I can't match: #{path_scanner.rest}.
@@ -60,11 +56,24 @@ module PathMatch
     end
   end
 
+  def method_missing(name, *args, &block)
+   if (match=(HAS_METHOD_SELECTOR.match name))
+      path=".#{match[:key]}"
+      self.path(path).present?
+   elsif (match=(FIND_METHOD_SELECTOR.match name))
+        value=(args.length>0) ? args[0] : raise(ArgumentError, 'find methods value selector argument')
+        path=".#{match[:key]}[?(@['#{match[:sub_key]}']==$value)]"
+        self.path(path, {value: value})
+   else
+        raise NoMethodError
+   end
+
+  end
+
 end
 
 class Hash
 
-  include ExprMatch
   include PathMatch
 
   PATH_MATCHERS={
@@ -111,35 +120,6 @@ class Array
 
 end
 
-class String
-
-  include ExprMatch
-
-end
-
-class Integer
-
-  include ExprMatch
-
-end
-
-class Float
-
-  include ExprMatch
-
-end
-
-class TrueClass
-
-  include ExprMatch
-
-end
-
-class FalseClass
-
-  include ExprMatch
-
-end
 
 class Object
 
