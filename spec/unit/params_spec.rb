@@ -19,7 +19,7 @@ describe 'Params Operations' do
 
   it "should return one element array" do
     expr='@[:age]<$age_limit'
-    result2=@array_of_hashes.path("[?(#{expr})].lname", {age_limit: 31})
+    result2=@array_of_hashes.find_by_path("[?(#{expr})].lname", {age_limit: 31})
     result2.should eql("Doe")
   end
 

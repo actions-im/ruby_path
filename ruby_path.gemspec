@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
 
   s.rubyforge_project = 'ruby_path'
 
+  s.add_development_dependency 'rake'
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'rspec-expectations'
   s.add_development_dependency 'bundler'
