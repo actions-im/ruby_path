@@ -31,6 +31,13 @@ module ExprMatch
     expression_processor.call(self, *values)
   end
 
+  def expr_to_str(expr, obj_name)
+    expression=expr.gsub('@', obj_name)
+    params=expression.scan(/\$(?<param>\w+)/).flatten
+    (0..(params.length-1)).each{|index| expression=expression.gsub("$#{params[index]}", "params[#{index}]")}
+    [expression, params]
+  end
+
 
 end
 
