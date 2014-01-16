@@ -78,6 +78,8 @@ module PathMatch
     current_object
   end
 
+
+=begin
   def method_missing(name, *args, &block)
    if (match=(HAS_METHOD_SELECTOR.match name))
       path=".#{match[:key]}"
@@ -87,10 +89,11 @@ module PathMatch
         path=".#{match[:key]}[?(@['#{match[:sub_key]}']==$value)]"
         self.find_by_path(path, {value: value})
    else
-        raise NoMethodError
+        raise "No method #{name}"
    end
 
   end
+=end
 
 end
 

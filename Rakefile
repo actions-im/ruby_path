@@ -56,6 +56,7 @@ namespace :benchmarking do
     Benchmark.bm{|bm|
       bm.report('By Proc'){
         iterations.times{
+          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
           year=Random.rand(10000)
           lambda{|plan|
             benefit=plan['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
@@ -68,6 +69,40 @@ namespace :benchmarking do
       bm.report('Native'){
         iterations.times{
           year=Random.rand(10000)
+          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
+          benefit=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
+          funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
+          funds.flat_map{|el| el['name']}
+        }
+      }
+
+    }
+  end
+
+
+  task :files do
+    iterations=1000
+    plans=[]
+    10.times{
+      plans<<JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
+    }
+    Benchmark.bm{|bm|
+      bm.report('By Proc'){
+        iterations.times{
+          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
+          year=Random.rand(10000)
+          lambda{|plan|
+            benefit=plan['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
+            funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
+            funds.flat_map{|el| el['name']}
+          }[plans[Random.rand(10)]]
+        }
+      }
+
+      bm.report('Native'){
+        iterations.times{
+          year=Random.rand(10000)
+          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
           benefit=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
           funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
           funds.flat_map{|el| el['name']}
