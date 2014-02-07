@@ -4,36 +4,57 @@ describe 'Basic Operations' do
 
   before :all do
     @simple_hash={fname: "Jack", lname: "Doe"}
+    @nested_hash={person: {fname: "Jack", lname: "Doe"}}
     @int_array=[1,2,3,4,5,6]
     @float_array=[1.0,2.3,3.4,4.5,5.6,6.7]
     @string_array=["Jack", "John", "Don", "Dave"]
     @array_of_hashes=[{fname: "Jack", lname: "Doe"},
                       {fname: "John", lname: "Walker"},
                       {fname: "Don", lname: "Pedro"}]
+
+  end
+
+  before :each do
+    PathCache.clear
   end
 
   it 'should support global extractor' do
-    @simple_hash.path('$').should eql(@simple_hash)
+    @simple_hash.find_by_path('$').should eql(@simple_hash)
   end
 
   it 'supports dot notation for child extractor' do
-    @simple_hash.path('$.fname').should eql(@simple_hash[:fname])
+    @simple_hash.find_by_path('$.fname').should eql(@simple_hash[:fname])
+    @simple_hash.find_by_path('$.fname').should eql(@simple_hash[:fname])
+    @simple_hash.find_by_path('$.fname').should eql(@simple_hash[:fname])
   end
 
   it 'supports bracket notation for child extractor' do
-    @simple_hash.path("$['lname']").should eql(@simple_hash[:lname])
+    shash=@simple_hash.stringify_keys
+    shash.find_by_path("$['lname']").should eql(shash['lname'])
+  end
+
+  it 'supports nested hash' do
+    @nested_hash.compile_path("$.person.lname")
+    @nested_hash.path_match("$.person.lname").should eql(@nested_hash[:person][:lname])
+    @nested_hash.path_match("$.person.lname").should eql(@nested_hash[:person][:lname])
+  end
+
+  it 'supports expressions on hash' do
+    @nested_hash.find_by_path("$.person[?(@[:lname].start_with?($start))]", {start: 'D'}).should  be_an_instance_of(Hash)
+    @nested_hash.find_by_path("$.person[?(@[:lname].start_with?($start))]", {start: 'F'}).should be_nil
   end
 
   it 'supports expression extractor for integer arrays' do
-    @int_array.path("[?(@>4)]").min.should eql(5)
+    @int_array.find_all_by_path('[?(@>4)]').min.should eql(5)
   end
 
   it 'supports expression extractor for float arrays' do
-    @float_array.path("[?(@>4.2)]").min.should eql(4.5)
+    @float_array.find_all_by_path("[?(@>4.2)]").min.should eql(4.5)
   end
 
   it 'supports expression extractor for string arrays' do
-    extractor=@string_array.path("[?(@.start_with?('J'))]")
+    @string_array.compile_path("[?(@.start_with?('J'))]")
+    extractor=@string_array.path_match("[?(@.start_with?('J'))]")
     extractor.length.should eql(2)
     extractor.should include "Jack"
     extractor.should_not include "Don"

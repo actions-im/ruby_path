@@ -17,11 +17,19 @@ describe 'Complex Operations' do
     funds.length.should eql(3)
   end
 
+
+  it 'supports array path with child selector parameters' do
+    path=".groups.benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name"
+    @plan.compile_path(path, {lower_bound:2030, upper_bound:2060})
+    funds=@plan.path_match(path, 2030, 2060)
+    funds.length.should eql(3)
+  end
+
   it 'supports multiple pathways' do
     benefit=@plan.find_by_path(".groups[?(@['code']==123)].benefits[?(@['code']=='401k')]")
-    selected_funds=benefit.pathways([".funds[?min((@['target_year']-(Time.now.year+10)).abs)]",
-        ".funds[?min((@['target_year']-(Time.now.year+20)).abs)]",
-        ".funds[?min((@['target_year']-(Time.now.year+30)).abs)]"])
+    selected_funds=benefit.pathways([".funds[?(@['target_year']==2030)]",
+                                     ".funds[?(@['target_year']==2040)]",
+                                     ".funds[?(@['target_year']==2050)]"])
     selected_funds.length.should eql(3)
   end
 

@@ -1,7 +1,7 @@
 module PathCache
 
   class << self
-    attr_accessor :path_cache, :expression_cache
+    attr_accessor :path_cache, :expression_cache, :templates
   end
 
   def self.add(path, extractor)
