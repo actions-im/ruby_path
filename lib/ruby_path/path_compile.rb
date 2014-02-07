@@ -80,6 +80,7 @@ module PathMatch
                Here is your object: #{current_object}
                Verify pattern matchers on #{current_object.class}"
       end
+      puts current_template
     end
     final_operation=last_class=='Hash' ? "=" : "<<"
     generated_code=current_template.gsub('$$body$$', "res#{final_operation}#{current_obj_name}") % {params: params_list.compact.join(',')}
@@ -180,7 +181,7 @@ class Array
     CHILD_SELECTOR=> proc{|key, obj, obj_name|
                          val = obj.flat_map{|el| el[key]||el[key.to_sym] }.compact
                          {val: val,
-                          template: %Q{#{obj_name}_index=0\n#{obj_name}_length=#{obj_name}.length\nwhile #{obj_name}_index<#{obj_name}_length do\n#{obj_name}_to_analyze=#{obj_name}[#{obj_name}_index]\n#{obj_name}_index+=1\nnext if #{obj_name}_to_analyze.nil?\n#{key}=#{obj_name}_to_analyze['#{key}'] || #{obj_name}_to_analyze[:#{key}]\n$$body$$\nend},
+                          template: %Q{#{obj_name}_index=0\n#{obj_name}_length=#{obj_name}.length\nwhile #{obj_name}_index<#{obj_name}_length do\n#{obj_name}_to_analyze=#{obj_name}[#{obj_name}_index]\n#{obj_name}_index+=1\nnext if #{obj_name}_to_analyze.nil?\n#{key}=#{obj_name}_to_analyze['#{key}'] || #{obj_name}_to_analyze[:#{key}]\nnext if #{key}.nil?\n$$body$$\nend},
                           next_obj: key
                          }
                         },

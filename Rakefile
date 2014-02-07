@@ -251,23 +251,37 @@ namespace :benchmarking do
 end
 
 
-lambda{ |main_obj,code,lower_bound,upper_bound|
+lambda{ |main_obj,lower_bound,upper_bound|
 res=[]
  groups=main_obj['groups']
- for groups_to_analyze in groups.to_a do
-  if (groups_to_analyze['code']==code)
-   benefits=groups_to_analyze['benefits']
-  for benefits_to_analyze in benefits.to_a do
-   if (benefits_to_analyze['code']=='401k')
+groups_index=0
+groups_length=groups.length
+while groups_index<groups_length do
+groups_to_analyze=groups[groups_index]
+groups_index+=1
+next if groups_to_analyze.nil?
+benefits=groups_to_analyze['benefits'] || groups_to_analyze[:benefits]
+next if benefits.nil?
+benefits_index=0
+benefits_length=benefits.length
+while benefits_index<benefits_length do
+benefits_to_analyze=benefits[benefits_index]
+benefits_index+=1
+next if benefits_to_analyze.nil?
+if benefits_to_analyze['code']=='401k'
    funds=benefits_to_analyze['funds']
-   for funds_to_analyze in funds.to_a do
-    if (funds_to_analyze['target_year']>=lower_bound && funds_to_analyze['target_year']<upper_bound)
-     name=funds_to_analyze['name']
-     res<<name
-    end
-   end
-   end
+funds_index=0
+funds_length=funds.length
+while funds_index<funds_length do
+funds_to_analyze=funds[funds_index]
+funds_index+=1
+next if funds_to_analyze.nil?
+if (funds_to_analyze['target_year']>=lower_bound && funds_to_analyze['target_year']<upper_bound)
+   name=funds_to_analyze['name']
+res<<name
   end
+end
   end
- end
+end
+end
 res}
