@@ -4,6 +4,7 @@ describe 'Basic Operations' do
 
   before :all do
     @simple_hash={fname: "Jack", lname: "Doe"}
+    @simple_hash_strings={'fname'=> "Jack", 'lname'=> "Doe"}
     @nested_hash={person: {fname: "Jack", lname: "Doe"}}
     @int_array=[1,2,3,4,5,6]
     @float_array=[1.0,2.3,3.4,4.5,5.6,6.7]
@@ -11,6 +12,11 @@ describe 'Basic Operations' do
     @array_of_hashes=[{fname: "Jack", lname: "Doe"},
                       {fname: "John", lname: "Walker"},
                       {fname: "Don", lname: "Pedro"}]
+
+    @array_of_hashes_string_keys=
+                      [{'fname'=> "Jack", 'lname'=> "Doe"},
+                      {'fname'=> "John", 'lname'=> "Walker"},
+                      {'fname' => "Don", 'lname' => "Pedro"}]
 
   end
 
@@ -29,14 +35,12 @@ describe 'Basic Operations' do
   end
 
   it 'supports bracket notation for child extractor' do
-    shash=@simple_hash.stringify_keys
-    shash.find_by_path("$['lname']").should eql(shash['lname'])
+    @simple_hash_strings.find_by_path("$['lname']").should eql(@simple_hash_strings['lname'])
   end
 
   it 'supports nested hash' do
-    @nested_hash.compile_path("$.person.lname")
-    @nested_hash.path_match("$.person.lname").should eql(@nested_hash[:person][:lname])
-    @nested_hash.path_match("$.person.lname").should eql(@nested_hash[:person][:lname])
+    @nested_hash.find_by_path("$.person.lname").should eql(@nested_hash[:person][:lname])
+    @nested_hash.find_by_path("$.person.lname").should eql(@nested_hash[:person][:lname])
   end
 
   it 'supports expressions on hash' do
@@ -53,8 +57,7 @@ describe 'Basic Operations' do
   end
 
   it 'supports expression extractor for string arrays' do
-    @string_array.compile_path("[?(@.start_with?('J'))]")
-    extractor=@string_array.path_match("[?(@.start_with?('J'))]")
+    extractor=@string_array.find_all_by_path("[?(@.start_with?('J'))]")
     extractor.length.should eql(2)
     extractor.should include "Jack"
     extractor.should_not include "Don"
@@ -62,7 +65,7 @@ describe 'Basic Operations' do
 
   it 'supports expression extractor for arrays of hashes with sym keys' do
     expr="@[:fname].start_with?('J')"
-    result=@array_of_hashes.path("[?(#{expr})].lname")
+    result=@array_of_hashes.find_all_by_path("[?(#{expr})].lname")
     result.length.should eql(2)
     result.should include "Doe"
     result.should_not include "Pedro"
@@ -70,19 +73,12 @@ describe 'Basic Operations' do
 
   it 'supports expression extractor for arrays of hashes with string keys' do
     expr="@['fname'].start_with?('J')"
-    result=@array_of_hashes.map{|el| el.stringify_keys}.path("[?(#{expr})].lname")
+    result=@array_of_hashes_string_keys.find_all_by_path("[?(#{expr})].lname")
     result.length.should eql(2)
     result.should include "Doe"
     result.should_not include "Pedro"
   end
 
-  it 'supports expression extractor for arrays of hashes with string keys' do
-    expr="@['fname'].start_with?('J')"
-    result=@array_of_hashes.map{|el| el.stringify_keys}.path("[?(#{expr})].lname")
-    result.length.should eql(2)
-    result.should include "Doe"
-    result.should_not include "Pedro"
-  end
 
 
 end

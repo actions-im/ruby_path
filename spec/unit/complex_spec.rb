@@ -20,7 +20,6 @@ describe 'Complex Operations' do
 
   it 'supports array path with child selector parameters' do
     path=".groups.benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name"
-    @plan.compile_path(path, {lower_bound:2030, upper_bound:2060}.stringify_keys)
     funds=@plan.path_match(path, 2030, 2060)
     funds.length.should eql(3)
   end
@@ -47,8 +46,8 @@ describe 'Complex Operations' do
   end
 
   it 'supports has methods' do
-    @plan.path(".groups[?(@['code']==123)]").has_benefits.should eql(true)
-    @plan.path(".groups[?(@['code']==123)]").benefits?.should eql(true)
+    @plan.find_by_path(".groups[?(@['code']==123)]").has_benefits.should eql(true)
+    @plan.find_by_path(".groups[?(@['code']==123)]").benefits?.should eql(true)
   end
 
 end

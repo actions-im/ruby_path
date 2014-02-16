@@ -82,7 +82,7 @@ namespace :benchmarking do
   end
 
   task :generate_file do
-    number_of_samples=500000
+    number_of_samples=400000
     content=open(File.join(File.dirname(__FILE__),'/spec/fixtures/benefits.json')){ |f| f.read }
     open(File.join(File.dirname(__FILE__),'/spec/fixtures/large_file.json'), 'w'){|f|
       f.write "["
@@ -98,7 +98,7 @@ namespace :benchmarking do
   task :whilevsflatmap do
     iterations=1000000
     puts Time.now
-    plans=Oj.load(open(File.join(File.dirname(__FILE__),'/spec/fixtures/small_file.json')){ |f| f.read })
+    plans=Oj.load(open(File.join(File.dirname(__FILE__),'/spec/fixtures/large_file.json')){ |f| f.read })
     GC.start
     p Time.now
     lambda=lambda{ |main_obj,code,lower_bound,upper_bound|
@@ -140,35 +140,47 @@ namespace :benchmarking do
     Benchmark.bmbm{|bm|
 
       bm.report('select'){
-              iterations.times{
-                #group=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first
-                r=Random.rand(plans.length)
-                funds = plans[r]['groups']
-                .select{|group| group['code']==r+1}
-                .flat_map{|group| group['benefits']}
-                .select{|benefit| benefit['code']=='401k'}
-                .flat_map{|benefit| benefit['funds']}.compact
-                .select{|funds_to_analyze| funds_to_analyze['target_year']>=2030 && funds_to_analyze['target_year']<2060 }
-                .map{|fund| fund['name']}
-                #p funds
-              }
-            }
-
-      bm.report('lambda'){
+    #    GC::Profiler.enable
         iterations.times{
+          group=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first
           r=Random.rand(plans.length)
-          res=lambda.call(plans[r],r+1,2030,2060)
-          #p res
+          funds = plans[r]['groups']
+          .select{|group| group['code']==r+1}
+          .flat_map{|group| group['benefits']}
+          .select{|benefit| benefit['code']=='401k'}
+          .flat_map{|benefit| benefit['funds']}.compact
+          .select{|funds_to_analyze| funds_to_analyze['target_year']>=2030 && funds_to_analyze['target_year']<2060 }
+          .map{|fund| fund['name']}
+          #p funds
         }
+    #    puts GC::Profiler.result
+    #    GC::Profiler.disable
       }
 
+
       bm.report('whiles'){
+    #    GC::Profiler.enable
         iterations.times{
           r=Random.rand(plans.length)
           res=plans[r].path_match(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name",r+1,2030,2060)
           #p res
         }
+    #   puts GC::Profiler.result
+    #   GC::Profiler.disable
       }
+
+
+      bm.report('lambda'){
+    #    GC::Profiler.enable
+        iterations.times{
+          r=Random.rand(plans.length)
+          res=lambda.call(plans[r],r+1,2030,2060)
+          #p res
+        }
+    #    puts GC::Profiler.result
+    #    GC::Profiler.disable
+      }
+
     }
   end
 
@@ -249,39 +261,3 @@ namespace :benchmarking do
   end
 
 end
-
-
-lambda{ |main_obj,lower_bound,upper_bound|
-res=[]
- groups=main_obj['groups']
-groups_index=0
-groups_length=groups.length
-while groups_index<groups_length do
-groups_to_analyze=groups[groups_index]
-groups_index+=1
-next if groups_to_analyze.nil?
-benefits=groups_to_analyze['benefits'] || groups_to_analyze[:benefits]
-next if benefits.nil?
-benefits_index=0
-benefits_length=benefits.length
-while benefits_index<benefits_length do
-benefits_to_analyze=benefits[benefits_index]
-benefits_index+=1
-next if benefits_to_analyze.nil?
-if benefits_to_analyze['code']=='401k'
-   funds=benefits_to_analyze['funds']
-funds_index=0
-funds_length=funds.length
-while funds_index<funds_length do
-funds_to_analyze=funds[funds_index]
-funds_index+=1
-next if funds_to_analyze.nil?
-if (funds_to_analyze['target_year']>=lower_bound && funds_to_analyze['target_year']<upper_bound)
-   name=funds_to_analyze['name']
-res<<name
-  end
-end
-  end
-end
-end
-res}

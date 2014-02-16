@@ -11,7 +11,7 @@ describe 'Params Operations' do
 
   it 'supports one parameter' do
     expr='@[:age]<$age_limit'
-    result1=@array_of_hashes.path("[?(#{expr})].lname", {age_limit: 40})
+    result1=@array_of_hashes.find_all_by_path("[?(#{expr})].lname", {age_limit: 40})
     result1.length.should eql(2)
     result1.should include "Doe"
     result1.should_not include "Pedro"
