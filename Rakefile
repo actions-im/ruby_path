@@ -95,52 +95,29 @@ namespace :benchmarking do
   end
 
 
-  task :whilevsflatmap do
+  task :pathvsdirect do
     iterations=1000000
     puts Time.now
     plans=Oj.load(open(File.join(File.dirname(__FILE__),'/spec/fixtures/large_file.json')){ |f| f.read })
     GC.start
     p Time.now
-    lambda=lambda{ |main_obj,code,lower_bound,upper_bound|
-     res=[]
-     groups=main_obj['groups']
-     groups_length=groups.length
-     groups_index=0
-     while groups_index < groups_length do
-      groups_to_analyze=groups[groups_index]
-      groups_index+=1
-      if groups_to_analyze['code']==code
-       benefits=groups_to_analyze['benefits']
-       next if benefits.nil?
-       benefits_length=benefits.length
-       benefits_index=0
-       while benefits_index < benefits_length do
-         benefits_to_analyze=benefits[benefits_index]
-         benefits_index+=1
-         if benefits_to_analyze['code']=='401k'
-           funds=benefits_to_analyze['funds']
-           next if funds.nil?
-           funds_length=funds.length
-           funds_index=0
-           while funds_index<funds_length
-            funds_to_analyze=funds[funds_index]
-            funds_index+=1
-            if funds_to_analyze['target_year']>=lower_bound && funds_to_analyze['target_year']<upper_bound
-             name=funds_to_analyze['name']
-             res<<name
-            end
-           end
-         end
-       end
-      end
-     end
-    res}
     #p "Loading complete - #{Time.now}"
-    res=plans[1].compile_path(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name",{code:2,lower_bound:2030, upper_bound:2060}.stringify_keys)
+    res=plans[1].compile_path(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name")
     Benchmark.bmbm{|bm|
 
-      bm.report('select'){
-    #    GC::Profiler.enable
+      bm.report('path'){
+        #GC::Profiler.enable
+        iterations.times{
+          r=Random.rand(plans.length)
+          res=plans[r].path_match(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name",r+1,2030,2060)
+          #p res
+        }
+       #puts GC::Profiler.result
+       #GC::Profiler.disable
+      }
+
+      bm.report('direct'){
+       #GC::Profiler.enable
         iterations.times{
           group=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first
           r=Random.rand(plans.length)
@@ -153,32 +130,8 @@ namespace :benchmarking do
           .map{|fund| fund['name']}
           #p funds
         }
-    #    puts GC::Profiler.result
-    #    GC::Profiler.disable
-      }
-
-
-      bm.report('whiles'){
-    #    GC::Profiler.enable
-        iterations.times{
-          r=Random.rand(plans.length)
-          res=plans[r].path_match(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name",r+1,2030,2060)
-          #p res
-        }
-    #   puts GC::Profiler.result
-    #   GC::Profiler.disable
-      }
-
-
-      bm.report('lambda'){
-    #    GC::Profiler.enable
-        iterations.times{
-          r=Random.rand(plans.length)
-          res=lambda.call(plans[r],r+1,2030,2060)
-          #p res
-        }
-    #    puts GC::Profiler.result
-    #    GC::Profiler.disable
+        #puts GC::Profiler.result
+        #GC::Profiler.disable
       }
 
     }
@@ -261,3 +214,20 @@ namespace :benchmarking do
   end
 
 end
+
+
+lambda{ |main_obj|
+  res=[]
+  unless main_obj.nil?
+    main_obj_index=0
+    main_obj_length=main_obj.length
+    while main_obj_index<main_obj_length do
+      main_obj_to_analyze=main_obj[main_obj_index]
+      main_obj_index+=1
+      if (main_obj_to_analyze[:fname].start_with?('J'))
+        lname=main_obj_to_analyze[:lname]
+        res=lname
+      end
+    end
+  end
+res}

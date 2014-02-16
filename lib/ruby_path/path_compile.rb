@@ -18,50 +18,42 @@ module PathMatch
     pathways.flat_map{|path| self.path_match(path, *context.values)}
   end
 
+  protected
+
   def path_match(path, *params)
     path_extractor=PathCache.get(path) || compile_path(path)
     full_params_list=params.insert(0,self)
     path_extractor.call(*full_params_list)
   end
 
-  attr_accessor :params_context
-
   def compile_path(path)
-    #init
-    current_template=%Q{lambda{ |%{params}| \nres=[]\n$$body$$\nres}}
-    current_obj_name='main_obj'
-    current_object=self
-    params_list=['main_obj']
-    last_class=current_object.class
-    #loop
+    init_compile={body: %Q{lambda{ |%{params}| \nres=[]\n$$body$$\nres}},
+                  obj_name: 'main_obj',
+                  object: self,
+                  params_list: ['main_obj']}
     begin
-      PATH_PARSER.for(path).each_match do |match|
-          sub_expression=match.captures.compact.first
-          last_class=current_object.class
-          extractor=(last_class::PATH_MATCHERS[match.regexp])
-          object_template_pair=extractor.call(sub_expression, current_object, current_obj_name)
-          current_object=object_template_pair[:val]
-          body=object_template_pair[:template]
-          params_list+=object_template_pair[:params].to_a
-          current_template=current_template.gsub('$$body$$', body)
-          current_obj_name=object_template_pair[:next_obj] || sub_expression || current_obj_name
+      final_compile=PATH_PARSER.for(path).inject_match(init_compile) do |compile, match|
+        sub_expression=match.captures.compact.first
+        compile[:container_class]=((!compile[:object].is_a?(Array) && match.regexp==EXPRESSION_SELECTOR) ? Hash : compile[:object].class)
+        extractor=compile[:container_class]::PATH_MATCHERS[match.regexp]
+        processing_result=extractor.call(sub_expression, compile[:object], compile[:obj_name])
+        compile[:object]=processing_result[:val]
+        compile[:params_list]+=processing_result[:params].to_a
+        compile[:body].gsub!('$$body$$', processing_result[:template])
+        compile[:obj_name]=processing_result[:next_obj] || sub_expression || compile[:obj_name]
+        compile
       end
     rescue NoMatchError=>ex
-      raise "Unable to parse your path: #{path}.
-             Here is the part, which I can't match: #{ex.rest}.
-             Here is your object: #{current_object}
-             Verify pattern matchers on #{current_object.class}"
+      raise PathCompileError.new("Unable to parse your path: #{path}.
+             Here is the part, which I can't match: #{ex.rest}.")
     end
-    #finalization
-    final_operation=last_class=='Hash' ? "=" : "<<"
-    generated_code=current_template.gsub('$$body$$', "res#{final_operation}#{current_obj_name}") % {params: params_list.compact.join(',')}
+    final_operation='<<'
+    generated_code=final_compile[:body].gsub('$$body$$', "res#{final_operation}#{final_compile[:obj_name]}") % {params: final_compile[:params_list].compact.join(',')}
     #puts generated_code
     path_extractor=eval(generated_code)
     PathCache.add(path, path_extractor)
     path_extractor
   end
-
-  protected
 
   def self.expr_to_str(expr, obj_name)
     expression=expr.gsub('@', obj_name)
@@ -107,6 +99,8 @@ module PathMatch
   FIND_METHOD_SELECTOR=/^find_(?<key>\w+)_by_(?<sub_key>\w+)/
   FIND_ALL_METHOD_SELECTOR=/^find_all_(?<key>\w+)_by_(?<sub_key>\w+)/
   HAS_METHOD_SELECTOR=/has_(?<key>\w+)|(?<key>\w+)\?/
+
+
 
 end
 
@@ -162,7 +156,7 @@ class Array
     GLOBAL_SELECTOR => proc{|key, obj| {val: obj, template: '$$body$$'}},
     GLOBAL_CHILD_SELECTOR => proc{raise 'global search is not supported now'},
     CHILD_SELECTOR=> proc{|key, obj, obj_name|
-                         val = obj.flat_map{|el| el[key]||el[key.to_sym] }.compact
+                         val = obj.map{|el| el[key]||el[key.to_sym] }.compact.first
                          {val: val,
                           template: %Q{unless #{obj_name}.nil?\n#{obj_name}_index=0\n#{obj_name}_length=#{obj_name}.length\nwhile #{obj_name}_index<#{obj_name}_length do\n#{obj_name}_to_analyze=#{obj_name}[#{obj_name}_index]\n#{obj_name}_index+=1\n#{key}=#{obj_name}_to_analyze['#{key}'] || #{obj_name}_to_analyze[:#{key}]\n$$body$$\nend\nend},
                           next_obj: key}
@@ -192,6 +186,10 @@ class Array
 
 end
 
+class PathCompileError < StandardError
+
+end
+
 class String
 
   def parameterized?
@@ -199,6 +197,7 @@ class String
   end
 
 end
+
 
 
 class Object

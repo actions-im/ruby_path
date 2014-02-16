@@ -3,8 +3,8 @@ require File.dirname(__FILE__) + '/../spec_helper'
 describe 'Complex Operations' do
 
   before :all do
+    @plan=Oj.load(open("#{fixture_path}/benefits.json"){ |f| f.read })
     PathCache.clear
-    @plan=JSON.parse(open("#{fixture_path}/benefits.json"){ |f| f.read })
   end
 
   it 'supports long path' do
@@ -20,22 +20,22 @@ describe 'Complex Operations' do
 
   it 'supports array path with child selector parameters' do
     path=".groups.benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name"
-    funds=@plan.path_match(path, 2030, 2060)
+    funds=@plan.find_all_by_path(path, {lower_bound: 2030, upper_bound: 2060})
     funds.length.should eql(3)
   end
 
   it 'supports multiple pathways' do
     benefit=@plan.find_by_path(".groups[?(@['code']==123)].benefits[?(@['code']=='401k')]")
-    selected_funds=benefit.pathways([".funds[?(@['target_year']==2030)]",
-                                     ".funds[?(@['target_year']==2040)]",
-                                     ".funds[?(@['target_year']==2050)]"])
+    selected_funds=benefit.pathways(%w{.funds[?(@['target_year']==2030)]
+                                     .funds[?(@['target_year']==2040)]
+                                     .funds[?(@['target_year']==2050)]})
     selected_funds.length.should eql(3)
   end
 
   it 'supports max and min method' do
-    group=@plan.path(".groups[?max(@['code'])]")
+    group=@plan.find_by_path(".groups[?max(@['code'])]")
     group['code'].should eql(124)
-    fund=@plan.path(".groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?min((@['target_year']-(Time.now.year+10)).abs)]")
+    fund=@plan.find_by_path(".groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?min((@['target_year']-(Time.now.year+10)).abs)]")
     (fund['target_year']-Time.now.year).should be < 10
   end
 

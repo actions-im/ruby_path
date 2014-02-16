@@ -32,10 +32,11 @@ module Parser
         @scannable=scannable
       end
 
-      def each_match(&block)
+      def inject_match(from, &block)
         scannable_length=@scannable.length
         number_of_expressions=@expressions.length
         pos=0
+        agg=from
         while pos<scannable_length
           match=nil
           expression_index=0
@@ -47,16 +48,16 @@ module Parser
           end
           if match.present?
             pos = match.end(0)
-            block.call(match)
+            agg=block.call(agg, match)
           else
-            raise NoMatchError.new(rest.slice(0,pos))
+            raise NoMatchError.new(@scannable.slice(pos,scannable_length))
           end
         end
+        agg
       end
 
     end
   end
-
 end
 
 class NoMatchError < StandardError
