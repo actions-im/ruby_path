@@ -25,10 +25,9 @@ describe 'Complex Operations' do
   end
 
   it 'supports multiple pathways' do
-    benefit=@plan.find_by_path(".groups[?(@['code']==123)].benefits[?(@['code']=='401k')]")
-    selected_funds=benefit.pathways(%w{.funds[?(@['target_year']==2030)]
-                                     .funds[?(@['target_year']==2040)]
-                                     .funds[?(@['target_year']==2050)]})
+    selected_funds=@plan.pathways(%w{.groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?(@['target_year']==2030)]
+                                     .groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?(@['target_year']==2040)]
+                                     .groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?(@['target_year']==2050)]})
     selected_funds.length.should eql(3)
   end
 
