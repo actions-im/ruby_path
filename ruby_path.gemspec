@@ -6,7 +6,7 @@ require 'ruby_path/version'
 Gem::Specification.new do |s|
   s.name        = "ruby_path"
   s.version     = RubyPath::VERSION
-  s.date        = "2014-01-01"
+  s.date        = "2014-03-21"
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Sergey Zelvenskiy']
   s.email       = ['sergey@actions.im']
