@@ -100,8 +100,6 @@ module PathMatch
   FIND_ALL_METHOD_SELECTOR=/^find_all_(?<key>\w+)_by_(?<sub_key>\w+)/
   HAS_METHOD_SELECTOR=/has_(?<key>\w+)|(?<key>\w+)\?/
 
-
-
 end
 
 class Hash
@@ -170,8 +168,23 @@ class Array
                               params:params,
                               next_obj: "#{obj_name}_to_analyze"}
                             },
-    #MIN_SELECTOR => lambda{|expr, obj, context| obj.min_by{|el| el.calc(expr,context)}},
-    #MAX_SELECTOR => lambda{|expr, obj, context| obj.max_by{|el| el.calc(expr,context)}},
+    MIN_SELECTOR => proc{|expr, obj, obj_name|
+                      expression, params=PathMatch.expr_to_str(expr, "#{obj_name}_to_analyze")
+                      val=obj.first
+                      {val: val,
+                       template:%Q{unless #{obj_name}.nil?\n min_#{obj_name}=#{obj_name}.min_by{|#{obj_name}_to_analyze| #{expression}}\n$$body$$ \nend},
+                       params:params,
+                       next_obj: "min_#{obj_name}"}
+                   },
+
+    MAX_SELECTOR => proc{|expr, obj, obj_name|
+                      expression, params=PathMatch.expr_to_str(expr, "#{obj_name}_to_analyze")
+                      val=obj.first
+                      {val: val,
+                       template:%Q{unless #{obj_name}.nil?\n max_#{obj_name}=#{obj_name}.max_by{|#{obj_name}_to_analyze| #{expression}}\n$$body$$ \nend},
+                       params:params,
+                       next_obj: "max_#{obj_name}"}
+                   },
     #ALL_THINGS_SELECTOR => lambda{|key, obj, context| obj},
     #MULTIPLE_KEYS => lambda{|key, obj, context| obj.values}
   }

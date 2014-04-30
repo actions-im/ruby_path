@@ -34,7 +34,7 @@ describe 'Complex Operations' do
   it 'supports max and min method' do
     group=@plan.find_by_path(".groups[?max(@['code'])]")
     group['code'].should eql(124)
-    fund=@plan.find_by_path(".groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?min((@['target_year']-(Time.now.year+10)).abs)]")
+    fund=@plan.find_by_path(".groups[?min(@['code'])].benefits[?(@['code']=='401k')].funds[?min((@['target_year']-(Time.now.year+10)).abs)]")
     (fund['target_year']-Time.now.year).should be < 10
   end
 

@@ -105,4 +105,31 @@ namespace :benchmarking do
 
   end
 
+  task :max_by_vs_while do
+    iterations=10000
+    objects=[]
+    iterations.times{objects<<Random.rand(iterations)}
+
+      Benchmark.bmbm{|bm|
+        bm.report('max_by'){
+          iterations.times{
+            my_max=objects.max_by{|x| -1*x}
+          }
+        }
+
+        bm.report('while'){
+          iterations.times{
+            index=0
+            length=objects.length
+            my_max=objects[0]
+            while index<length do
+              x=objects[index]
+              index+=1
+              my_max=x if (-1*x > -1*my_max)
+            end
+          }
+        }
+      }
+  end
+
 end
