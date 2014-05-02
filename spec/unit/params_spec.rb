@@ -23,5 +23,11 @@ describe 'Params Operations' do
     result2.should eql("Doe")
   end
 
+  it "should support larger contexts with irrelevant values" do
+    expr='@[:age]<$age_limit'
+    result2=@array_of_hashes.find_by_path("[?(#{expr})].lname", {age_limit: 31, irrelevant_key_1: 1,irrelevant_key_2: 2 })
+    result2.should eql("Doe")
+  end
+
 
 end

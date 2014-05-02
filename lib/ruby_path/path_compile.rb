@@ -6,24 +6,34 @@ module PathMatch
 
 
   def find_all_by_path(path, context={})
-    path_match(path, *context.values)
+    path_match(path, context)
   end
 
   def find_by_path(path, context={})
-    findings=path_match(path, *context.values)
+    findings=path_match(path, context)
     findings.is_a?(Array) ? findings[0] : findings
   end
 
   def pathways(pathways, context={})
-    pathways.flat_map{|path| self.path_match(path, *context.values)}
+    pathways.flat_map{|path| self.path_match(path, context)}
   end
 
   protected
 
-  def path_match(path, *params)
-    path_extractor=PathCache.get(path) || compile_path(path)
-    full_params_list=params.insert(0,self)
-    path_extractor.call(*full_params_list)
+  def path_match(path, context={})
+    path_extractor_info=PathCache.get(path) || compile_path(path)
+    param_names=path_extractor_info[:params]
+    if param_names.length>1
+      param_values=context.empty? ? []:context.values_at(*param_names).compact
+      params=[self] + param_values
+      if param_names.length<params.length
+        missing_params=param_names-context.keys-[:main_obj]
+        raise "Unable to execute the extractor, missing the following parameters: #{missing_params}"
+      end
+      path_extractor_info[:extractor].call(*params)
+    else
+      path_extractor_info[:extractor].call(self)
+    end
   end
 
   def compile_path(path)
@@ -51,8 +61,9 @@ module PathMatch
     generated_code=final_compile[:body].gsub('$$body$$', "res#{final_operation}#{final_compile[:obj_name]}") % {params: final_compile[:params_list].compact.join(',')}
     #puts generated_code
     path_extractor=eval(generated_code)
-    PathCache.add(path, path_extractor)
-    path_extractor
+    path_extractor_info={extractor: path_extractor, params: final_compile[:params_list].map(&:to_sym)}
+    PathCache.add(path, path_extractor_info)
+    path_extractor_info
   end
 
   def self.expr_to_str(expr, obj_name)
