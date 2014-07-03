@@ -67,6 +67,33 @@
                     "name" : "Anthem Blue Cross HDHP"
                 }
             ]
+        },
+        {
+            "code": 123,
+            "name": "Unionized",
+            "benefits": [
+                {
+                    "id": "jbair_U",
+                    "topic": "Retirement",
+                    "type" : "Retirement Plan",
+                    "code": "Pension",
+                    "name" : "JetBlue Pension"
+                },
+                {
+                    "id": "jbair_U",
+                    "topic": "Retirement",
+                    "type" : "Retirement Plan",
+                    "code": "401k",
+                    "name" : "JetBlue Pension"
+                },
+                {
+                    "id": "jbhdhp",
+                    "topic": "Halthcare",
+                    "type": "Health Insurance",
+                    "code" : "HDHP",
+                    "name" : "Anthem Blue Cross HDHP"
+                }
+            ]
         }
     ]
 

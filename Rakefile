@@ -1,5 +1,5 @@
 require File.join(File.dirname(__FILE__),'/lib/ruby_path.rb')
-require 'json'
+require 'oj'
 require 'benchmark'
 
 require 'bundler/gem_tasks'
@@ -16,101 +16,120 @@ task :default => 'spec:unit'
 
 namespace :benchmarking do
 
-  task :path do
-     iterations=1000000
-     path="$.groups[?(@['code']==123)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>$lower_year && @['target_year']<=$higher_year)].name"
-     plans=[]
-     PathCache.clear
-     10.times{
-       plans<<JSON.parse(open(File.join(File.dirname(__FILE__),'/spec/fixtures/benefits.json')){ |f| f.read })
-     }
-     Benchmark.bm{ |bm|
-
-       bm.report ('By Path') {
-         iterations.times{
-           year=Random.rand(10000)
-           plans[Random.rand(10)].path(path, {lower_year:year, higher_year:10000-year})
-         }
-       }
-
-       bm.report('Native'){
-         iterations.times{
-           year=Random.rand(10000)
-           benefit=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
-           funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
-           funds.flat_map{|el| el['name']}
-         }
-       }
-
-
-     }
-
-  end
-
-  task :proc do
-    iterations=1000
-    plans=[]
-    10.times{
-      plans<<JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
-    }
-    Benchmark.bm{|bm|
-      bm.report('By Proc'){
-        iterations.times{
-          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
-          year=Random.rand(10000)
-          lambda{|plan|
-            benefit=plan['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
-            funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
-            funds.flat_map{|el| el['name']}
-          }[plans[Random.rand(10)]]
-        }
+  task :generate_file do
+    number_of_samples=400000
+    content=open(File.join(File.dirname(__FILE__),'/spec/fixtures/benefits.json')){ |f| f.read }
+    open(File.join(File.dirname(__FILE__),'/spec/fixtures/large_file.json'), 'w'){|f|
+      f.write "["
+      number_of_samples.times{|tick|
+        s=content.gsub('"code": 123', "\"code\": #{tick+1}")
+        f.write s + (tick<(number_of_samples-1) ? ',' : "" )
       }
-
-      bm.report('Native'){
-        iterations.times{
-          year=Random.rand(10000)
-          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
-          benefit=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
-          funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
-          funds.flat_map{|el| el['name']}
-        }
-      }
-
+      f.write "]"
     }
   end
 
 
-  task :files do
-    iterations=1000
-    plans=[]
-    10.times{
-      plans<<JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
-    }
-    Benchmark.bm{|bm|
-      bm.report('By Proc'){
+  task :pathvsdirect do
+    iterations=1000000
+    puts Time.now
+    plans=Oj.load(open(File.join(File.dirname(__FILE__),'/spec/fixtures/large_file.json')){ |f| f.read })
+    p Time.now
+    #p "Loading complete - #{Time.now}"
+    #res=plans[1].compile_path(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name")
+    GC::Profiler.enable
+
+    def path_selector(plan, r, upper_bound, lower_bound)
+      plan['groups'].select{|group| group['code']==r+1}
+      .flat_map{|group| group['benefits']}
+      .select{|benefit| benefit['code']=='401k'}
+      .flat_map{|benefit| benefit['funds']}.compact
+      .select{|funds_to_analyze| funds_to_analyze['target_year']>=upper_bound && funds_to_analyze['target_year']<lower_bound }
+      .map{|fund| fund['name']}
+    end
+
+    Benchmark.bmbm{|bm|
+
+      bm.report('path'){
         iterations.times{
-          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
-          year=Random.rand(10000)
-          lambda{|plan|
-            benefit=plan['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
-            funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
-            funds.flat_map{|el| el['name']}
-          }[plans[Random.rand(10)]]
+          r=Random.rand(plans.length)
+          res=plans[r].find_all_by_path(".groups[?(@['code']==$code)].benefits[?(@['code']=='401k')].funds[?(@['target_year']>=$lower_bound && @['target_year']<$upper_bound)].name",{code:r+1,lower_bound: 2030,upper_bound: 2060})
+          #p res
+        }
+
+       #GC::Profiler.disable
+        puts "\n#{GC::Profiler.result}"
+      }
+
+
+      bm.report('direct'){
+       #GC::Profiler.enable
+        iterations.times{
+          #group=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first
+          r=Random.rand(plans.length)
+          path_selector(plans[r], r, 2030, 2060)
+        }
+        puts "\n#{GC::Profiler.result}"
+      }
+
+    }
+    GC::Profiler.disable
+  end
+
+  task :whilevsfor do
+    iterations=10000#00
+    objects=[]
+    iterations.times{objects<<Random.rand(iterations)}
+
+      Benchmark.bm{|bm|
+        bm.report('for'){
+          iterations.times{
+            for x in objects do
+              x*2
+            end
+          }
+        }
+
+        bm.report('while'){
+          iterations.times{
+            index=0
+            length=objects.length
+            while index<length do
+              x=objects[index]
+              index+=1
+              x*2
+            end
+          }
         }
       }
 
-      bm.report('Native'){
-        iterations.times{
-          year=Random.rand(10000)
-          JSON.parse(open(File.join(Rails.root.join('public','plans') , "jetblue.json")){ |f| f.read })
-          benefit=plans[Random.rand(10)]['groups'].select{|b| b['code']==123}.first['benefits'].select{|b| b['code']=='401k'}.first
-          funds=benefit['funds'].select{|el| (el['target_year']>year && el['target_year']<=(10000-year))}
-          funds.flat_map{|el| el['name']}
+  end
+
+  task :max_by_vs_while do
+    iterations=10000
+    objects=[]
+    iterations.times{objects<<Random.rand(iterations)}
+
+      Benchmark.bmbm{|bm|
+        bm.report('max_by'){
+          iterations.times{
+            my_max=objects.max_by{|x| -1*x}
+          }
+        }
+
+        bm.report('while'){
+          iterations.times{
+            index=0
+            length=objects.length
+            my_max=objects[0]
+            while index<length do
+              x=objects[index]
+              index+=1
+              my_max=x if (-1*x > -1*my_max)
+            end
+          }
         }
       }
-
-    }
   end
 
 end
-

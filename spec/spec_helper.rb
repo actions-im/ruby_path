@@ -1,5 +1,5 @@
 require File.dirname(__FILE__) + '/../lib/ruby_path'
-require 'json'
+require 'oj'
 
 require 'rspec'
 RSpec.configure do |config|

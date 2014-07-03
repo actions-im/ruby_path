@@ -1,3 +1,5 @@
 .bundle
 tmp
 .idea
+vendor
+spec/fixtures/large_file.json
