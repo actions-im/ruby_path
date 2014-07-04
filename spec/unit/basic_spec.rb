@@ -18,6 +18,16 @@ describe 'Basic Operations' do
                       {'fname'=> "John", 'lname'=> "Walker"},
                       {'fname' => "Don", 'lname' => "Pedro"}]
 
+    @array_of_nested_hashes=
+                     [{employee: {fname: "Jack", lname: "Employee"}},
+                      {manager: {fname: "John", lname: "Walker"}},
+                      {fname: "Don", lname: 'Pedro'}]
+
+    @array_of_nested_hashes_string_keys=
+                     [{'employee'=> {'fname'=> "Jack", 'lname'=> "Employee"}},
+                      {'manager'=> {'fname'=> "John", 'lname'=> "Walker"}},
+                      {'fname'=> "Don", 'lname'=> 'Pedro'}]
+
   end
 
   before :each do
@@ -78,6 +88,20 @@ describe 'Basic Operations' do
     result.should include "Doe"
     result.should_not include "Pedro"
   end
+
+  it 'throws error if it can not continue compilation' do
+    expect { @array_of_hashes_string_keys.find_all_by_path("$.person.lname") }.to raise_error
+  end
+
+  it 'supports heterogeneous array of nested hashes' do
+    result1=@array_of_nested_hashes.find_all_by_path("$.employee.lname")
+    result1.should eql(["Employee"])
+
+    result2=@array_of_nested_hashes_string_keys.find_all_by_path("$.manager.lname")
+    result2.should eql(["Walker"])
+  end
+
+
 
 
 

@@ -43,15 +43,20 @@ module PathMatch
                   params_list: ['main_obj']}
     begin
       final_compile=PATH_PARSER.for(path).inject_match(init_compile) do |compile, match|
-        sub_expression=match.captures.compact.first
-        compile[:container_class]=((!compile[:object].is_a?(Array) && match.regexp==EXPRESSION_SELECTOR) ? Hash : compile[:object].class)
-        extractor=compile[:container_class]::PATH_MATCHERS[match.regexp]
-        processing_result=extractor.call(sub_expression, compile[:object], compile[:obj_name])
-        compile[:object]=processing_result[:val]
-        compile[:params_list]+=processing_result[:params].to_a
-        compile[:body].gsub!('$$body$$', processing_result[:template])
-        compile[:obj_name]=processing_result[:next_obj] || sub_expression || compile[:obj_name]
-        compile
+        if compile[:object]
+          sub_expression=match.captures.compact.first
+          compile[:container_class]=((!compile[:object].is_a?(Array) && match.regexp==EXPRESSION_SELECTOR) ? Hash : compile[:object].class)
+          extractor=compile[:container_class]::PATH_MATCHERS[match.regexp]
+          processing_result=extractor.call(sub_expression, compile[:object], compile[:obj_name])
+          compile[:object]=processing_result[:val]
+          compile[:params_list]+=processing_result[:params].to_a
+          compile[:body].gsub!('$$body$$', processing_result[:template])
+          compile[:obj_name]=processing_result[:next_obj] || sub_expression || compile[:obj_name]
+          compile
+        else
+          raise PathCompileError.new("Unable to compile path: #{path}.
+                 The representative object does not provide enough data and returns null in the middle")
+        end
       end
     rescue NoMatchError=>ex
       raise PathCompileError.new("Unable to parse your path: #{path}.
@@ -141,11 +146,11 @@ class Hash
                          val = obj[key]
                          if obj[key].present?
                            {val: val,
-                            template: %Q{ #{key}=#{obj_name}['#{key}']\n$$body$$}}
+                            template: %Q{ unless #{obj_name}.nil?\n#{key}=#{obj_name}['#{key}']\n$$body$$\nend}}
                          elsif obj[key.to_sym].present?
                            val=obj[key.to_sym]
                            {val: val,
-                            template: %Q{ #{key}=#{obj_name}[:#{key}]\n$$body$$}}
+                            template: %Q{ unless #{obj_name}.nil?\n#{key}=#{obj_name}[:#{key}]\n$$body$$\nend}}
                          end
                        },
     ALL_THINGS_SELECTOR => proc{|key, obj, obj_name|
