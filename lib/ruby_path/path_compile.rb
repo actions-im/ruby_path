@@ -23,11 +23,11 @@ module PathMatch
   def path_match(path, context={})
     path_extractor_info=PathCache.get(path) || compile_path(path)
     param_names=path_extractor_info[:params]
-    if param_names.length>1
-      param_values=context.empty? ? []:context.values_at(*param_names).compact
+    if param_names.length>0
+      param_values=context.empty? ? []:context.values_at(*param_names)
       params=[self] + param_values
-      if param_names.length<params.length
-        missing_params=param_names-context.keys-[:main_obj]
+      if param_names.length<param_values.length
+        missing_params=param_names-context.keys
         raise "Unable to execute the extractor, missing the following parameters: #{missing_params}"
       end
       path_extractor_info[:extractor].call(*params)
@@ -66,7 +66,9 @@ module PathMatch
     generated_code=final_compile[:body].gsub('$$body$$', "res#{final_operation}#{final_compile[:obj_name]}") % {params: final_compile[:params_list].compact.join(',')}
     #puts generated_code
     path_extractor=eval(generated_code)
-    path_extractor_info={extractor: path_extractor, params: final_compile[:params_list].map(&:to_sym)}
+    params=final_compile[:params_list]
+    params.shift
+    path_extractor_info={extractor: path_extractor, params: params.map(&:to_sym)}
     PathCache.add(path, path_extractor_info)
     path_extractor_info
   end
